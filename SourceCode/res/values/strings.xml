@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">KKAdvert</string>
+    <string name="main_name">ADVERT</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="top_title">Advertisement (bootlogo,bootvideo,DVB program info advert)</string>
+    <string name="adsummary">(bootlogo,bootvideo,pfinfo AD)</string>
+    <string name="adinfo">Advert Information</string>
+    <string name="adversion">Version:</string>
+    <string name="addownurl">Download Address:</string>
+
+</resources>

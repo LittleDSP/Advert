@@ -1,0 +1,38 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="com.konka.advert.MainActivity" >
+
+    <Button 
+        android:id="@+id/btn_adinfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:text="@string/adinfo" />
+    <TextView
+        android:id="@+id/tview_adsummary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_adinfo"
+        android:text="@string/adsummary" />
+    
+    <TextView
+        android:id="@+id/tview_adversion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tview_adsummary"
+        android:text="@string/adversion" />"
+
+	<TextView
+        android:id="@+id/tview_addownurl"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tview_adversion"
+        android:text="@string/addownurl" />
+	
+</RelativeLayout>
