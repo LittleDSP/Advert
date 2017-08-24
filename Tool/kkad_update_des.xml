@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="gb2312" standalone="no"?>
+<!--konka advertisment update -->
+<kkad_UpdateInfo>
+	<Manufacture>KONKA</Manufacture>
+	<Model>HAN873</Model>
+	<HW_version>0x00000101</HW_version>
+	<SW_server_version>0x00010209</SW_server_version>
+	<SW_stb_version>0</SW_stb_version>
+	<AD_server_version>0x00010208</AD_server_version>
+	<AD_stb_version>0</AD_stb_version>
+	
+	<SN>
+	<!-- SN hex -->
+		<scope
+			start="00002"
+			end="00009" >
+		<index>0</index>
+	</scope>
+	</SN>
+	
+	<AdImage>
+		<name>bootlogo</name>
+		<update>true</update>
+		<url>http://stbupdate.kkapp.com/test/advert/HAN873/HAN873-YILI/boot0.jpg</url>
+		<md5_key>cf339b5900444c4f49e6d974a18e0b47</md5_key>
+		<download_path>/data/kkadvert/boot0.jpg</download_path>
+		<dest_path>/system/media/boot1.jpg</dest_path>
+	</AdImage>
+	
+	<AdImage>
+		<name>bootvideo</name>
+		<update>true</update>
+		<url>http://stbupdate.kkapp.com/test/advert/HAN873/HAN873-YILI/bootvideo.mp4</url>
+		<md5_key>321456</md5_key>     
+		<download_path>/data/kkadvert/bootvideo.mp4</download_path>
+		<dest_path>/system/bootvideo.mp4</dest_path>     
+	</AdImage>
+	
+	<AdImage>
+		<name>dvbpflogo</name>
+		<update>true</update>
+		<url>http://stbupdate.kkapp.com/test/advert/HAN873/HAN873-YILI/dvb_pflogo.jpg</url>
+		<md5_key>654321</md5_key>     
+		<download_path>/data/kkadvert/dvb_pflogo.jpg</download_path>
+		<dest_path>/system/bootvideo.mp4</dest_path>     
+	</AdImage>
+	
+	<veriryFile>/system/kkadvert/verify.cfg</veriryFile>
+
+</kkad_UpdateInfo>

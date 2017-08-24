@@ -9,6 +9,6 @@
     <string name="adsummary">(bootlogo,bootvideo,pfinfo AD)</string>
     <string name="adinfo">Advert Information</string>
     <string name="adversion">Version:</string>
-    <string name="addownurl">Download Address:</string>
+    <string name="adservurl">Server Address:</string>
 
 </resources>

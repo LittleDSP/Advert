@@ -1,8 +1,15 @@
 package com.konka.advert.utils;
 
+import android.util.Log;
+
 public class FormatUtils {
     public static long fromString2Long(String number) throws NumberFormatException {
         long fLong;
+        if(null==number) {
+        	Log.e(ADLogUtil.LOGTAG, "number is null !!!");
+        	return -1;
+        }
+        number = number.replace(".", "");
         if(number.startsWith("0x") || number.startsWith("0X")) {
             fLong = Long.valueOf(number.substring(2),16);
         } else {

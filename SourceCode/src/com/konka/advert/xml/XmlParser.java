@@ -2,11 +2,12 @@ package com.konka.advert.xml;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import android.util.Log;
 
-import com.konka.advert.ADLogUtil;
+import com.konka.advert.utils.ADLogUtil;
 
 public class XmlParser extends DefaultHandler{
 	
@@ -25,10 +26,7 @@ public class XmlParser extends DefaultHandler{
     private static final String AD_server_version = "AD_server_version";
     private static final String AD_stb_version = "AD_stb_version";
     private static final String verifyFile = "verifyFile";
-    private static final String Period = "Period";
-    private static final String Control = "Control";
     private static final String scope = "scope";
-    private static final String index = "index";
     private static final String adImg = "AdImage";
 	
 	@Override
@@ -69,6 +67,8 @@ public class XmlParser extends DefaultHandler{
 			 mAdImg.name = builder.toString();
 		 } else if("update".equals(qName) && mAdImg != null) {
 			 mAdImg.update = builder.toString();
+		 } else if("file".equals(qName) && mAdImg != null) {
+			 mAdImg.file = builder.toString();
 		 } else if("url".equals(qName) && mAdImg != null) {
 			 mAdImg.url = builder.toString();
 		 } else if("md5_key".equals(qName) && mAdImg != null) {
@@ -76,7 +76,9 @@ public class XmlParser extends DefaultHandler{
 		 } else if("download_path".equals(qName) && mAdImg != null) {
 			 mAdImg.downloadPath = builder.toString();
 		 } else if("dest_path".equals(qName) && mAdImg != null) {
-			 mAdImg.destPath = builder.toString();
+			 if(builder.toString().contains("/") && !("default".equals(builder.toString()))) {
+				 mAdImg.destPath = builder.toString();
+			 }
 		 } else if(adImg.equals(qName)) {
 			 mAdUpdateInfo.adImgList.add(mAdImg);
 		 } else if(verifyFile.equals(qName)) {
@@ -98,6 +100,7 @@ public class XmlParser extends DefaultHandler{
 		}
 		builder.setLength(0);
 	}
+	
 	@Override
 	public void characters(char[] ch, int start, int length)
 			throws SAXException {
@@ -114,8 +117,31 @@ public class XmlParser extends DefaultHandler{
 			listener.onSuccess(mAdUpdateInfo);
 		}
 	}
+	
+	
 
-    public void setXmlParserListener(XmlParserListener listener) {
+    @Override
+	public void error(SAXParseException e) throws SAXException {
+		// TODO Auto-generated method stub
+    	Log.e(LOGTAG, "xmlparser erro. " + e.getMessage());
+		super.error(e);
+	}
+
+	@Override
+	public void fatalError(SAXParseException e) throws SAXException {
+		// TODO Auto-generated method stub
+		Log.e(LOGTAG, "xmlparser fatalError. " + e.getMessage());
+		super.fatalError(e);
+	}
+
+	@Override
+	public void warning(SAXParseException e) throws SAXException {
+		// TODO Auto-generated method stub
+		Log.e(LOGTAG, "xmlparser warning. " + e.getMessage());
+		super.warning(e);
+	}
+
+	public void setXmlParserListener(XmlParserListener listener) {
         this.listener = listener;
     }
 }

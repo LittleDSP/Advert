@@ -6,7 +6,7 @@ import java.util.List;
 
 import android.util.Log;
 
-import com.konka.advert.ADLogUtil;
+import com.konka.advert.utils.ADLogUtil;
 
 public class XmlAdUpdateInfo {
 	private String LOGTAG = ADLogUtil.LOGTAG;
@@ -91,6 +91,7 @@ public class XmlAdUpdateInfo {
     	Log.i(LOGTAG, "    " + SW_stb_version);
     	Log.i(LOGTAG, "    " + AD_server_version);
     	Log.i(LOGTAG, "    " + AD_stb_version);
+    	Log.i(LOGTAG, "    " + verifyFile);
     	
     	Log.i(LOGTAG, "------scope------");
     	Iterator<Scope> iterator = scopeList.iterator();
@@ -139,10 +140,11 @@ public class XmlAdUpdateInfo {
     public class AdImageInfo {
     	protected String name;
     	protected String update;
+    	protected String file;
     	protected String url;
     	protected String md5Key;
     	protected String downloadPath;
-    	protected String destPath;
+    	protected String destPath = "/data/advert/";
     	
     	protected AdImageInfo()
     	{
@@ -161,6 +163,11 @@ public class XmlAdUpdateInfo {
     		} else {
     			return false;
     		}
+    	}
+    	
+    	public String getFile()
+    	{
+    		return file;
     	}
     	
     	public String getUrl()

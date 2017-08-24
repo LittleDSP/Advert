@@ -1,6 +1,6 @@
 package com.konka.advert.service;
 
-import com.konka.advert.ADLogUtil;
+import com.konka.advert.utils.ADLogUtil;
 
 import android.app.Service;
 import android.content.Intent;
@@ -10,7 +10,7 @@ import android.util.Log;
 public class ADUpdateService extends Service{
 
 	private String LOGTAG = ADLogUtil.LOGTAG; 
-	private ADUpdateManager mUpdateManager;
+	private ADUpdateManager mUpdateManager = null;
 	
 	@Override
 	public void onCreate() {
@@ -23,7 +23,11 @@ public class ADUpdateService extends Service{
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		// TODO Auto-generated method stub
-		Log.i(LOGTAG, "ADUpdateService process:" + startId);
+		Log.i(LOGTAG, ADLogUtil.getDebugInfo() + "---" + startId);
+		if(null == mUpdateManager)
+		{
+			mUpdateManager = new ADUpdateManager(getApplicationContext());
+		}
 		mUpdateManager.invoke();
 		return super.onStartCommand(intent, flags, startId);
 	}

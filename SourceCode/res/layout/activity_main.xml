@@ -9,30 +9,47 @@
     tools:context="com.konka.advert.MainActivity" >
 
     <Button 
-        android:id="@+id/btn_adinfo"
+        android:id="@+id/bton_adinfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:focusable="false"
         android:text="@string/adinfo" />
+
     <TextView
-        android:id="@+id/tview_adsummary"
+        android:id="@+id/txview_adsummary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/btn_adinfo"
+        android:layout_below="@id/bton_adinfo"
         android:text="@string/adsummary" />
     
     <TextView
-        android:id="@+id/tview_adversion"
+        android:id="@+id/label_adversion"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txview_adsummary"
+        android:text="@string/adversion" />
+    
+    <TextView
+        android:id="@+id/txview_adversion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/tview_adsummary"
-        android:text="@string/adversion" />"
+        android:layout_toRightOf="@id/label_adversion"
+        android:layout_below="@id/txview_adsummary"
+        android:text="@string/adversion" />
 
+    <TextView
+        android:id="@+id/label_adservurl"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/label_adversion"
+        android:text="@string/adservurl" />
+    
 	<TextView
-        android:id="@+id/tview_addownurl"
+        android:id="@+id/txview_adservurl"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/tview_adversion"
-        android:text="@string/addownurl" />
+         android:layout_toRightOf="@id/label_adservurl"
+        android:layout_below="@id/txview_adversion"
+        android:text="@string/adservurl" />
 	
 </RelativeLayout>

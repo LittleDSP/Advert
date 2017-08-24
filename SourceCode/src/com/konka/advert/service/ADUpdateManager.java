@@ -1,28 +1,19 @@
 package com.konka.advert.service;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
-
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
-import org.xml.sax.XMLReader;
 
 import com.google.gson.Gson;
-import com.konka.advert.ADLogUtil;
+import com.konka.advert.utils.ADLogUtil;
 import com.konka.advert.utils.FormatUtils;
 import com.konka.advert.xml.XmlAdUpdateInfo;
 import com.konka.advert.xml.XmlAdUpdateInfo.AdImageInfo;
@@ -41,82 +32,91 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
-//import android.os.SystemProperties;
 
 public class ADUpdateManager {
 	private String LOGTAG = ADLogUtil.LOGTAG;
 	protected Context mContext;
-	private Timer timer;
-	private TimerTask mTask;
-	private long tDelay = 15*1000;
-	private long tPeriod = 10*60*1000;
-	private String xmlFilePath = "/data/kkadvert/";
-	private String xmlFileName = "ad.xml";
-	private String xmlFile = xmlFilePath + xmlFileName;
 	
-	private String xmlUrl = "http://stbupdate.kkapp.com/test/advert/HAN873/HAN873-YILI/kkad_update_des.xml";
-	private String xmlDes = xmlFile;
-	private String bkpointFile = "/data/kkadvert/breakpoint.txt";
+	private Timer timer = null;
+	private TimerTask mTask = null;
+	private long DELAY_TIME = 60*1000;		//1 minute
+	private long PERIOD_TIME = 6*60*60*1000;	//6h
 	
-	private XmlAdUpdateInfo xmlInfo;
+	private FileLoad loadServ = null;
+	private boolean multDownloadReady = false;
+	private String BKP_FILE_NAME = "breakpoint.txt";
+	private String XML_DOWNLOAD_XID = "xmlDownloadXid";
+	private String xmlDloadPath = null;
+	private String imgDloadPath = null;
+	private XmlAdUpdateInfo mXmlInfo = null;
 	
 	private String nativeManufacture = null; 
 	private String nativeModelId = null; 
 	private String nativeSN = null;
-	private String nativeHwVersion = null;
-	private String nativeSwVersion = null;
-	private String nativeADVersion = null; //SystemProperties.get("ro.config.server_xml_url");
-	
-	private HashMap<String, Integer> xidHashMap = new HashMap<String, Integer>();
+	private String nativeAdVersion = null;
+	private String nativeAdServUrl = null;
+
+	private HashMap<String, Integer> xidHashMap;
 	private enum xidHandleCmd {
 					INSERT,
-					DELETC,
+					DELETE,
 					QUERY,
-					ISEMPTY
+					ISEMPTY,
+					RESET
 					};
-	
-	private FileLoad loadServ = null;
 	
 	public ADUpdateManager(Context context)
 	{
 		mContext = context;
-		
-//		localADVersion = SystemProperties.get("ro.config.ad.server_xml_url");
-		//nativeADVersion = "0x000100209";
-		Log.i(LOGTAG, "persist.nativeADVersion=" + new PlatfUtil().getManufactureADVersion());
-		SharedPreferences pref = context.getSharedPreferences("dbase", Activity.MODE_PRIVATE);
-		nativeADVersion = pref.getString("ad_version", "noValue");
-		if("noValue".equals(nativeADVersion)) {
-			nativeADVersion = new PlatfUtil().getManufactureADVersion();
-			SharedPreferences.Editor editor = pref.edit();
-			editor.putString("ad_version", nativeADVersion);
-			editor.commit();
+		imgDloadPath = mContext.getFilesDir().getAbsolutePath() + "/Download";
+		File file = new File(imgDloadPath);
+		if(!file.exists()) {
+			file.mkdirs();
 		}
+		xmlDloadPath = imgDloadPath + "/kk_advert.xml";
 		
+		SharedPreferences adPref = mContext.getSharedPreferences("ad_database", Activity.MODE_PRIVATE);
+		SharedPreferences.Editor prefEditor = adPref.edit();
+		PlatfUtil mPlatUtil = new PlatfUtil();
 		
-		Log.i(LOGTAG, "nativeADVersion=" + nativeADVersion);
+		nativeManufacture = mPlatUtil.getManufacture();
+		nativeModelId = mPlatUtil.getManufactureModeId();
+		nativeSN = mPlatUtil.getManufactureSerialNumber();
+		Log.i(LOGTAG, "nativeManufacture=" + nativeManufacture + "---" + "nativeModelId=" + nativeModelId
+				+ "---" + "nativeSN=" + nativeSN);
+		
+    	/***
+    	 * priority 0: get advertisement information from the app database.
+    	 * priority 1: get advertisement information from the system properties.
+    	 *     ---precondition: if (priority 0) have no data.
+    	 ***/
+		nativeAdVersion = adPref.getString("ad_version", "noValue");
+    	nativeAdServUrl = adPref.getString("ad_url", "noValue");    	
+    	if("noValue".equals(nativeAdVersion)) {
+    		nativeAdVersion = mPlatUtil.getManufactureADVersion();
+			prefEditor.putString("ad_version", nativeAdVersion);
+			prefEditor.commit();
+    	}
+    	if("noValue".equals(nativeAdServUrl)) {
+    		nativeAdServUrl = mPlatUtil.getManufactureADServerURL();
+    		prefEditor.putString("ad_url", nativeAdServUrl);
+			prefEditor.commit();
+    	}		
+		Log.i(LOGTAG, "nativeAdVersion=" + nativeAdVersion + "---" + "nativeAdServUrl=" + nativeAdServUrl);
+		
 		timer = new Timer();
 		mTask = new MyTimerTask();
+		
+		xidHashMap = new HashMap<String, Integer>();
 	}
 	
-	private class MyTimerTask extends TimerTask {
-
-		@Override
-		public void run() {
-			// TODO Auto-generated method stub
-			Log.i(LOGTAG, "ADUpdateManager timer task run");
-			checkServerXml();
-		}
-		
-	}
-
 	public synchronized void invoke()
 	{
 		timer.cancel();
 		mTask.cancel();
 		timer = new Timer();
 		mTask = new MyTimerTask();
-		timer.schedule(mTask, tDelay, tPeriod);
+		timer.schedule(mTask, DELAY_TIME, PERIOD_TIME);
 	}
 	
 	private void checkServerXml()
@@ -124,89 +124,20 @@ public class ADUpdateManager {
 		if(null == loadServ) {
 			loadServ = new FileLoad();
 		}
-		dowanloadXML();		
-	}
-	
-	private int dowanloadXML()
-	{
-		LoadList loList = null;
-		LoadList.LoadInfo loInfo = null;
-		String xid = "xmlDownloadXid";
 		
-		String contt = FileUtils.ReadFileToStr(bkpointFile);
-		if(contt != null)
-		{
-			Gson gson = new Gson();
-			loList = gson.fromJson(contt, LoadList.class);
-			if(loList != null)
-			{
-				
-				loInfo = loList.getLoadInfo(xid);
-			}
-		}
-		
-		if(null == loInfo)	
-		{
-			loInfo  = new LoadList.LoadInfo();
-			loInfo.setXID(xid);
-			loInfo.setTargetFile(xmlDes);
-			loInfo.setSupportBP(LoadList.YES);
-			loInfo.setLoadType(LoadList.DOWNLOAD);
-			loInfo.setUnitLength("5242880"); //5M*1024*1024=5242880
-			loInfo.setUrl(xmlUrl);
-		}
-		
-		loadServ.SetCBfun(new FileLoadCBfun());
-		loadServ.SetConfigFilePath(bkpointFile);
-		loadServ.Request(loInfo);
-		
-		return 0;
-	}
-	
-	private int downloadBootLogo()
-	{
-		
-		return 0;
-	}
-	
-	private int downloadBootvideo()
-	{
-		return 0;
-	}
-	
-	private int downloadDVBpfLogo()
-	{
-		return 0;
-	}
-	
-	private int copyToUser(String orig, String dest)
-	{
-		return 0;
-	}
-	
-	private int verify(String file, String key)
-	{
-		
-		return 0;
+		Log.i(LOGTAG, "XML_DOWNLOAD_XID=" + XML_DOWNLOAD_XID 
+				+ "---" + "xmlDloadPath=" + xmlDloadPath
+				+ "---" + "nativeAdServUrl=" + nativeAdServUrl);
+		downloadFile(XML_DOWNLOAD_XID, xmlDloadPath, nativeAdServUrl);		
 	}
 	
 	private void parserAdXml()
 	{
-		File file = new File(xmlFilePath + xmlFileName);
-		BufferedReader reader;
-		Log.i(LOGTAG, "---------------------ad.xml-------------------------");
-		try {
-			reader = new BufferedReader(new FileReader(file));
-
-			String rd;
-			while ((rd = reader.readLine()) != null) {
-				Log.i(LOGTAG, "" + rd);
-			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+		File file = new File(xmlDloadPath);
+		if(true != file.exists()) {
+			Log.e(LOGTAG, "advert xml file is not exists. file=" + xmlDloadPath);
+			return;
+		}		
 		
 		SAXParserFactory saxFactory = SAXParserFactory.newInstance();
 		try {
@@ -228,80 +159,96 @@ public class ADUpdateManager {
 		}	
 	}
 	
-	
-	private void checkUpdate(XmlAdUpdateInfo info)
+	private void checkUpdate()
 	{
-//		PRODUCT_PROPERTY_OVERRIDES += \
-//				persist.sys.konka.stbinfo.stbid=0 \
-//				persist.sys.konka.stbinfo.sw=0 \
-//				persist.sys.konka.stbinfo.hw=0 \
-//				persist.sys.konka.stbinfo.sn=0 \
-//				persist.sys.konka.stbinfo.mac=0 \
-//				persist.sys.konka.stbinfo.model=0 \
-//				persist.sys.konka.stbinfo.mfg=0 \
-//				persist.sys.konka.stbinfo.rtime=0 \
-//				persist.sys.konka.stbinfo.mn=99016756
-		nativeManufacture = "KONKA";
-		nativeModelId = "HAN873";
-		nativeHwVersion = "0x00000101";
-		nativeSwVersion = "0x00010206";
-		nativeADVersion = "0x00010208";
-		nativeSN = "0x00000005";
-		
-		if(nativeManufacture.equals(info.getManufacture())) {
-			if(nativeModelId.equals(info.getModelID())) {
-				long swVersionXml = FormatUtils.fromString2Long(info.getSwServerVersion());
-				long swVersionNative = FormatUtils.fromString2Long(nativeSwVersion);
-				if(swVersionXml > swVersionNative) {
-					long curSN = FormatUtils.fromString2Long(nativeSN);
+		if(nativeManufacture.equals(mXmlInfo.getManufacture())) {
+			if(nativeModelId.equals(mXmlInfo.getModelID())) {
+				long adNatVersion = FormatUtils.fromString2Long(nativeAdVersion);
+				long adSerVersion = FormatUtils.fromString2Long(mXmlInfo.getAdServerVersion());
+				long adSerStbVersion = FormatUtils.fromString2Long(mXmlInfo.getAdStbVersion());
+				if( (adNatVersion < adSerVersion) && ( (adNatVersion==adSerStbVersion) || (0==adSerStbVersion) ) ) {
+					long curSN;
+					try {
+					curSN = FormatUtils.fromString2Long(nativeSN);
+					if(-1==curSN) {
+						Log.e(LOGTAG, "curSN is null !!!"); 
+						return;
+					}
+					} catch (Exception e){
+						Log.e(LOGTAG, "curSN error !!!");
+						return;
+					}
 					boolean inside = false;
-					for(Scope scope:info.getScopeList()) {
+					for(Scope scope:mXmlInfo.getScopeList()) {
 						long startSN = FormatUtils.fromString2Long(scope.getStartSN());
 						long endSN = FormatUtils.fromString2Long(scope.getEndSN());
 						if(curSN >= startSN && curSN <= endSN) {
 							inside = true;
 						}
 						else {
-							Log.i(LOGTAG, "curSN not inside:" + curSN + startSN + endSN);
+							Log.e(LOGTAG, "curSN not inside:" + "curSN=" + curSN 
+									+ "---" + "startSN=" + startSN 
+									+ "---" + "endSN=" +endSN);
 						}
 					}
 					if(true == inside) {
-						beginDownload(info);
-					}
+						beginDownloadImg(mXmlInfo);
+					}	
+				} else {
+					Log.i(LOGTAG, "ad version is not matching:" + "nativeAdVersion=" + adNatVersion 
+							+ "---" + "adSerVersion=" + adSerVersion
+							+ "---" + "adSerStbVersion" + adSerStbVersion);
 				}
-				else {
-					Log.i(LOGTAG, "swVersionNative not inside:" + swVersionNative + swVersionXml);
-				}
+			} else {
+				Log.i(LOGTAG, "ModelId is not matching:" + "nativeModelId=" + nativeModelId 
+						+ "---" + "servModelId=" + mXmlInfo.getModelID());
 			}
+		} else {
+			Log.i(LOGTAG, "Manufacture is not matching:" + "nativeManufacture=" + nativeManufacture 
+					+ "---" + "servManufacture=" + mXmlInfo.getManufacture());
 		}
 	}
 	
-	private void beginDownload(XmlAdUpdateInfo info)
+	private synchronized void setMultDownloadReady(boolean flag)
+	{
+		multDownloadReady = flag;
+	}
+	
+	private boolean getMultDownloadReady()
+	{
+		return multDownloadReady;
+	}
+	
+	private void beginDownloadImg(XmlAdUpdateInfo info)
 	{
 		Iterator<AdImageInfo> iterator = info.getAdImgInfoList().iterator();
+		setMultDownloadReady(true);
+		handleXid(xidHandleCmd.RESET, null);
+		String downloadDes;
 		while(iterator.hasNext()) {
 			XmlAdUpdateInfo.AdImageInfo mAdImgInfo = iterator.next();
 			if(true == mAdImgInfo.isUpdate()) {
-				downloadImg(mAdImgInfo.getName(), mAdImgInfo.getDownloadPath(), mAdImgInfo.getUrl());
+				downloadDes = imgDloadPath + "/" + mAdImgInfo.getFile();
+				downloadFile(mAdImgInfo.getName(), downloadDes, mAdImgInfo.getUrl());
 			}
 		}
+		setMultDownloadReady(false);
 	}
 	
-	private void downloadImg(String name, String dloadPath, String url)
+	private void downloadFile(String name, String dloadPath, String url)
 	{
 		LoadList loList = null;
 		LoadList.LoadInfo loInfo = null;
 		String xid = name;
 		String downlaodPath = dloadPath;
 		
-		String contt = FileUtils.ReadFileToStr(bkpointFile);
+		String contt = FileUtils.ReadFileToStr(BKP_FILE_NAME);
 		if(contt != null)
 		{
 			Gson gson = new Gson();
 			loList = gson.fromJson(contt, LoadList.class);
 			if(loList != null)
 			{
-				
 				loInfo = loList.getLoadInfo(xid);
 			}
 		}
@@ -318,7 +265,7 @@ public class ADUpdateManager {
 		}
 		
 		loadServ.SetCBfun(new FileLoadCBfun());
-		loadServ.SetConfigFilePath(bkpointFile);
+		loadServ.SetConfigFilePath(BKP_FILE_NAME);
 		loadServ.Request(loInfo);
 		
 		handleXid(xidHandleCmd.INSERT, xid);
@@ -330,7 +277,7 @@ public class ADUpdateManager {
 			case INSERT:
 				xidHashMap.put(xid, 1);
 				break;
-			case DELETC:
+			case DELETE:
 				xidHashMap.remove(xid);
 				break;
 			case QUERY:
@@ -338,6 +285,8 @@ public class ADUpdateManager {
 				return true;
 			case ISEMPTY:
 				return xidHashMap.isEmpty();
+			case RESET:
+				xidHashMap.clear();
 			default:
 				break;
 		}
@@ -345,53 +294,27 @@ public class ADUpdateManager {
 		return true;
 	}
 	
-	class XmlListener implements XmlParserListener {
-
-		@Override
-		public void onError(SAXParseException e) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public void onStart() {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public void onSuccess(XmlAdUpdateInfo info) {
-			// TODO Auto-generated method stub
-//			Log.i(LOGTAG, "onSuccess++++" + info.getManufacture() 
-//					+ "---" + info.getModelID()
-//					+ "---" + info.getHwVersion()
-//					+ "---" + info.getSwServerVersion()
-//					+ "---" + info.getSwStbVersion()
-//					+ "---" + info.getAdServerVersion()
-//					+ "---" + info.getAdStbVersion());
-			info.printAll();
-			xmlInfo = info;
-			checkUpdate(xmlInfo);
-		}
-		
-	}
-	
-	private void verifyImg(XmlAdUpdateInfo xmlInfo)
+	private void verifyImg()
 	{
 		Iterator<AdImageInfo> iterator;
-		AdImageInfo mXmlInfo;
+		AdImageInfo info;
 		boolean veriryOk = false; 
 		String img;
 		String md5Key;
 		String downPath;
 		String destPath;
 		
-		iterator = xmlInfo.getAdImgInfoList().iterator();
+		iterator = mXmlInfo.getAdImgInfoList().iterator();
 		while(iterator.hasNext()) {
-			mXmlInfo = iterator.next();
-			if( mXmlInfo.isUpdate() ) {
-				img = mXmlInfo.getDownloadPath();
-				md5Key = mXmlInfo.getMd5Key();
+			info = iterator.next();
+			if( info.isUpdate() ) {
+				img = imgDloadPath + "/" + info.getFile();
+				if(!(new File(img).exists())) {
+					veriryOk = false;
+					Log.i(LOGTAG, "verify fail, dowanload file no exist:" + "file=" + img);
+					break;
+				}
+				md5Key = info.getMd5Key();
 				if( 0 != ShaUtils.CheckFile(ShaUtils.MD5, img, md5Key) ){
 					veriryOk = false;
 					Log.i(LOGTAG, "verify fail:\n    "
@@ -406,23 +329,29 @@ public class ADUpdateManager {
 		}
 		
 		if(true == veriryOk) {
-			iterator = xmlInfo.getAdImgInfoList().iterator();
+			iterator = mXmlInfo.getAdImgInfoList().iterator();
+			//begin copy files
+			writeResult("verifyOK=false\n");
 			while(iterator.hasNext()) {
-				mXmlInfo = iterator.next();
-				if( mXmlInfo.isUpdate() ) {
-					downPath = mXmlInfo.getDownloadPath();
-					destPath = mXmlInfo.getDestPath();
+				info = iterator.next();
+				if( info.isUpdate() ) {
+					downPath = imgDloadPath + "/" + info.getFile();
+					destPath = info.getDestPath() + "/" + info.getFile();
+					Log.i(LOGTAG, "copy file:\n    "
+							+ "downPath=" + downPath + "\n    "
+							+ "destPath=" + destPath);
+					//chmodFile(info.getDestPath());
 					FileUtils.copyFile(downPath, destPath, true);
 				}
 			}
 			
 			veriryOk = false;
-			iterator = xmlInfo.getAdImgInfoList().iterator();
+			iterator = mXmlInfo.getAdImgInfoList().iterator();
 			while(iterator.hasNext()) {
-				mXmlInfo = iterator.next();
-				if( mXmlInfo.isUpdate() ) {
-					img = mXmlInfo.getDestPath();
-					md5Key = mXmlInfo.getMd5Key();
+				info = iterator.next();
+				if( info.isUpdate() ) {
+					img = info.getDestPath() + "/" + info.getFile();
+					md5Key = info.getMd5Key();
 					if( 0 != ShaUtils.CheckFile(ShaUtils.MD5, img, md5Key) ){
 						veriryOk = false;
 						Log.i(LOGTAG, "verify fail:\n    "
@@ -436,15 +365,31 @@ public class ADUpdateManager {
 				}
 			}
 			
-			if(true == veriryOk) {
-				Log.i(LOGTAG, "WriteToFile" + xmlInfo.getVerifyFile());
-				String vf = xmlInfo.getVerifyFile();
-				if(null != vf) {
-					FileUtils.WriteToFile(vf, "verifyOk=true");
-					chmodFile(vf);
-				}
+			if(true == veriryOk) {				
+				writeResult("verifyOK=true\n");
+				updateVersionInfo();
 			}
 		}
+	}
+	
+	private void writeResult(String res)
+	{
+		String vf = mXmlInfo.getVerifyFile();
+		Log.i(LOGTAG, "Write verify result:" + res + " to file=" + vf);
+		if(null != vf) {
+			FileUtils.delFile(vf);
+			FileUtils.WriteToFile(vf, res);
+			chmodFile(vf);
+		}
+	}
+	
+	private void updateVersionInfo()
+	{
+		SharedPreferences adPref = mContext.getSharedPreferences("ad_database", Activity.MODE_PRIVATE);
+		SharedPreferences.Editor prefEditor = adPref.edit();		
+		nativeAdVersion = mXmlInfo.getAdServerVersion();
+		prefEditor.putString("ad_version", nativeAdVersion);
+		prefEditor.commit();
 	}
 	
 	private void chmodFile(String fileName)
@@ -459,14 +404,55 @@ public class ADUpdateManager {
 		}
 	}
 	
+	private class MyTimerTask extends TimerTask {
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			Log.i(LOGTAG, "ADUpdateManager timer task run");
+			checkServerXml();
+		}
+		
+	}
+	
+	class XmlListener implements XmlParserListener {
+
+		@Override
+		public void onError(SAXParseException e) {
+			// TODO Auto-generated method stub
+		}
+
+		@Override
+		public void onStart() {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onSuccess(XmlAdUpdateInfo info) {
+			// TODO Auto-generated method stub
+			if(null == info) {
+				Log.e(LOGTAG, "pareser advert xml info is null.");
+				return;
+			}
+			info.printAll();
+			mXmlInfo = info;
+			checkUpdate();
+		}
+	}
+	
 	class FileLoadCBfun extends LoadCBfun {
 
 		@Override
 		public void DownloadFailure(LoadInfo info, String step, String result,
 				String param) {
 			// TODO Auto-generated method stub
-			Log.i(LOGTAG, "FileLoadCBfun---DownloadFailure " + result + " " + step + " " + param);
-			Log.i(LOGTAG, "URL=" + info.getUrl());
+			Log.i(LOGTAG, ADLogUtil.getDebugInfo() + "---" + info.getXID() 
+					+ "---" + "step=" + step
+					+ "---" + "param" + param);
+			if(null != info.getXID()) {
+				handleXid(xidHandleCmd.DELETE, info.getXID());
+			}
 			super.DownloadFailure(info, step, result, param);
 		}
 
@@ -474,51 +460,27 @@ public class ADUpdateManager {
 		public void DownloadResponse(LoadInfo info, String step, String result,
 				String param) {
 			// TODO Auto-generated method stub
-			Log.i(LOGTAG, "FileLoadCBfun---DownloadResponse---" + info.getXID() + "res=" + result);
+			Log.i(LOGTAG, ADLogUtil.getDebugInfo() + "---" + info.getXID() 
+													+ "---" + "res=" + result
+													+ "---" + "param" + param);
 			if( "Succeed".equals(result) ) {
-				if( "xmlDownloadXid".equals(info.getXID()) ) {
-					parserAdXml();
-				} else {
 					if(null != info.getXID()) {
-						handleXid(xidHandleCmd.DELETC, info.getXID());
-						if(handleXid(xidHandleCmd.ISEMPTY, null)) {
-							verifyImg(xmlInfo);
+						handleXid(xidHandleCmd.DELETE, info.getXID());
+						
+						if( XML_DOWNLOAD_XID.equals(info.getXID()) ) {
+							parserAdXml();
+						} else {
+							if(false == getMultDownloadReady()) {
+								if(handleXid(xidHandleCmd.ISEMPTY, null)) {
+									verifyImg();
+								}
+							}
 						}
 					}
 						
 				}
-				
-			}
 			super.DownloadResponse(info, step, result, param);
-		}
-
-		@Override
-		public void DownloadUpdate(LoadInfo info, boolean finish, long curr,
-				long total) {
-			// TODO Auto-generated method stub
-			super.DownloadUpdate(info, finish, curr, total);
-		}
-
-		@Override
-		public void UploadFailure(LoadInfo info, String result, String param) {
-			// TODO Auto-generated method stub
-			super.UploadFailure(info, result, param);
-		}
-
-		@Override
-		public void UploadResponse(LoadInfo info, String result, String param) {
-			// TODO Auto-generated method stub
-			super.UploadResponse(info, result, param);
-		}
-
-		@Override
-		public void UploadUpdate(LoadInfo info, boolean finish, long curr,
-				long total) {
-			// TODO Auto-generated method stub
-			super.UploadUpdate(info, finish, curr, total);
-		}
-		
+		}		
 	}
-	
-	
+
 }
