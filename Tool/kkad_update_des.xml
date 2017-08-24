@@ -11,7 +11,7 @@
 	
 	<SN>
 	<!-- SN hex -->
-		<scope
+	<scope
 			start="00002"
 			end="00009" >
 		<index>0</index>
@@ -21,30 +21,39 @@
 	<AdImage>
 		<name>bootlogo</name>
 		<update>true</update>
+		<file>boot0.jpg</file>
 		<url>http://stbupdate.kkapp.com/test/advert/HAN873/HAN873-YILI/boot0.jpg</url>
-		<md5_key>cf339b5900444c4f49e6d974a18e0b47</md5_key>
-		<download_path>/data/kkadvert/boot0.jpg</download_path>
-		<dest_path>/system/media/boot1.jpg</dest_path>
+		<md5_key>78bedc412241557ecf35dcf459a1fcb3</md5_key>
+		<dest_path>default</dest_path>
 	</AdImage>
 	
 	<AdImage>
 		<name>bootvideo</name>
 		<update>true</update>
+		<file>bootvideo.mp4</file>
 		<url>http://stbupdate.kkapp.com/test/advert/HAN873/HAN873-YILI/bootvideo.mp4</url>
-		<md5_key>321456</md5_key>     
-		<download_path>/data/kkadvert/bootvideo.mp4</download_path>
-		<dest_path>/system/bootvideo.mp4</dest_path>     
+		<md5_key>e862b9425e622bcf621deae30f8a9d24</md5_key>
+		<dest_path>default</dest_path>     
 	</AdImage>
 	
 	<AdImage>
 		<name>dvbpflogo</name>
 		<update>true</update>
+		<file>dvb_pflogo.jpg</file>
 		<url>http://stbupdate.kkapp.com/test/advert/HAN873/HAN873-YILI/dvb_pflogo.jpg</url>
-		<md5_key>654321</md5_key>     
-		<download_path>/data/kkadvert/dvb_pflogo.jpg</download_path>
-		<dest_path>/system/bootvideo.mp4</dest_path>     
+		<md5_key>ced3b197db00ddf109b60fb5544302a1</md5_key>
+		<dest_path>default</dest_path>     
 	</AdImage>
 	
-	<veriryFile>/system/kkadvert/verify.cfg</veriryFile>
+	<AdImage>
+		<name>dvbpflogo2</name>
+		<update>true</update>
+		<file>dvb_pflogo2.jpg</file>
+		<url>http://stbupdate.kkapp.com/test/advert/HAN873/HAN873-YILI/dvb_pflogo.jpg</url>
+		<md5_key>ced3b197db00ddf109b60fb5544302a1</md5_key>
+		<dest_path>default</dest_path>     
+	</AdImage>
+	
+	<verifyFile>/data/advert/ad_verify.cfg</verifyFile>
 
 </kkad_UpdateInfo>
